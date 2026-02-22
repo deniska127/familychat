@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Семейный чат с синхронизацией</title>
+    <style>
+        /* Стили те же, что и в предыдущей версии, можно оставить без изменений */
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            background: #f0f2f5;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .chat-container {
+            width: 100%;
+            max-width: 800px;
+            height: 90vh;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .header {
+            background: #075e54;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h2 {
+            margin: 0;
+            font-weight: 500;
+            font-size: 1.3rem;
+        }
+        .logout-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        .login-form {
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: white;
+        }
+        .login-form h3 {
+            margin: 0 0 10px;
+            color: #075e54;
+            text-align: center;
+        }
+        .login-form input {
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            font-size: 1rem;
+            outline: none;
+            transition: border 0.2s;
+        }
+        .login-form input:focus {
+            border-color: #075e54;
+        }
+        .login-form button {
+            background: #075e54;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .login-form button:hover {
+            background: #054c44;
+        }
+        .error-message {
+            color: #d32f2f;
+            font-size: 0.9rem;
+            text-align: center;
+            margin-top: 5px;
+        }
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #e5ddd5;
+        }
+        .messages-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .message {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 18px;
+            max-width: 80%;
+            word-wrap: break-word;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            align-self: flex-start;
+            position: relative;
+        }
+        .message.own {
+            background: #dcf8c6;
+            align-self: flex-end;
+        }
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .message-author {
+            font-weight: bold;
+            color: #075e54;
+        }
+        .message-time {
+            color: #999;
+        }
+        .message-text {
+            font-size: 0.95rem;
+            margin: 5px 0;
+        }
+        .message-image {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 10px;
+            margin-top: 5px;
+            cursor: pointer;
+        }
+        /* NEW: стили для видео в сообщении */
+        .message-video {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            margin-top: 5px;
+        }
+        .input-area {
+            background: #f0f0f0;
+            padding: 15px;
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+            border-top: 1px solid #ddd;
+        }
+        .input-area textarea {
+            flex: 1;
+            border: none;
+            border-radius: 25px;
+            padding: 12px 15px;
+            font-size: 0.95rem;
+            resize: none;
+            max-height: 100px;
+            outline: none;
+            background: white;
+        }
+        .input-area input[type="file"] {
+            display: none;
+        }
+        .attach-btn {
+            background: #075e54;
+            color: white;
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        .attach-btn:hover {
+            background: #054c44;
+        }
+        .send-btn {
+            background: #075e54;
+            color: white;
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        .send-btn:hover {
+            background: #054c44;
+        }
+        .photo-preview {
+            max-width: 60px;
+            max-height: 60px;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 2px solid #075e54;
+        }
+        /* NEW: стили для превью видео */
+        .video-preview {
+            max-width: 120px;
+            max-height: 80px;
+            border-radius: 8px;
+            border: 2px solid #075e54;
+            background: black;
+        }
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="header">
+            <h2>👨‍👩‍👧‍👦 Семейный чат</h2>
+            <button id="logoutBtn" class="logout-btn hidden">Выйти</button>
+        </div>
+
+        <div id="loginBlock" class="login-form">
+            <h3>Вход в чат</h3>
+            <input type="text" id="loginName" placeholder="Ваше имя (например, Папа)" value="">
+            <input type="password" id="loginPassword" placeholder="Пароль">
+            <button id="loginBtn">Войти</button>
+            <div id="loginError" class="error-message"></div>
+        </div>
+
+        <div id="chatBlock" class="chat-main hidden">
+            <div id="messages" class="messages-area"></div>
+            <div class="input-area">
+                <label for="photoInput" class="attach-btn" title="Прикрепить фото">📷</label>
+                <input type="file" id="photoInput" accept="image/*">
+                <!-- NEW: кнопка для видео -->
+                <label for="videoInput" class="attach-btn" title="Прикрепить видео">📹</label>
+                <input type="file" id="videoInput" accept="video/*">
+                <textarea id="messageText" placeholder="Напишите сообщение..." rows="1"></textarea>
+                <button id="sendBtn" class="send-btn">➤</button>
+            </div>
+            <!-- Контейнер для превью фото (был ранее) -->
+            <div id="previewContainer" style="padding: 0 15px 10px; display: none;">
+                <img id="imagePreview" class="photo-preview" src="#" alt="Превью">
+            </div>
+            <!-- NEW: контейнер для превью видео -->
+            <div id="videoPreviewContainer" style="padding: 0 15px 10px; display: none;">
+                <video id="videoPreview" class="video-preview" controls></video>
+            </div>
+        </div>
+    </div>
+
+    <!-- Подключаем Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+    <script>
+        (function() {
+            // 🔥 ЗАМЕНИТЕ ЭТИ ДАННЫЕ НА СВОИ ИЗ КОНСОЛИ FIREBASE
+            const firebaseConfig = {
+                apiKey: "AIzaSyAyR1elICQIl2Co7T93OTGccqfocTKmhgM",
+                authDomain: "familychat-4887e.firebaseapp.com",
+                databaseURL: "https://familychat-4887e-default-rtdb.firebaseio.com/",
+                projectId: "familychat-4887e",
+                storageBucket: "familychat-4887e.firebasestorage.app",
+                messagingSenderId: "914704805998",
+                appId: "1:914704805998:web:4dc99877eae3a1ed72b67f"
+            };
+
+            // Инициализация Firebase
+            firebase.initializeApp(firebaseConfig);
+            const db = firebase.database();
+            const messagesRef = db.ref('messages');
+
+            // --- Параметры ---
+            const FAMILY_PASSWORD = 'family123';
+            const USER_KEY = 'current_user';
+
+            // --- Глобальные переменные ---
+            let currentUser = null;
+            let selectedPhotoDataURL = null;
+            // NEW: переменная для хранения DataURL видео
+            let selectedVideoDataURL = null;
+
+            // --- Элементы DOM ---
+            const loginBlock = document.getElementById('loginBlock');
+            const chatBlock = document.getElementById('chatBlock');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const loginName = document.getElementById('loginName');
+            const loginPassword = document.getElementById('loginPassword');
+            const loginBtn = document.getElementById('loginBtn');
+            const loginError = document.getElementById('loginError');
+            const messagesDiv = document.getElementById('messages');
+            const messageText = document.getElementById('messageText');
+            const sendBtn = document.getElementById('sendBtn');
+            const photoInput = document.getElementById('photoInput');
+            const imagePreview = document.getElementById('imagePreview');
+            const previewContainer = document.getElementById('previewContainer');
+            // NEW: элементы для видео
+            const videoInput = document.getElementById('videoInput');
+            const videoPreview = document.getElementById('videoPreview');
+            const videoPreviewContainer = document.getElementById('videoPreviewContainer');
+
+            // --- Проверка сессии ---
+            function checkSession() {
+                const savedUser = localStorage.getItem(USER_KEY);
+                if (savedUser) {
+                    currentUser = savedUser;
+                    showChat();
+                } else {
+                    showLogin();
+                }
+            }
+
+            function showLogin() {
+                loginBlock.classList.remove('hidden');
+                chatBlock.classList.add('hidden');
+                logoutBtn.classList.add('hidden');
+                currentUser = null;
+            }
+
+            function showChat() {
+                loginBlock.classList.add('hidden');
+                chatBlock.classList.remove('hidden');
+                logoutBtn.classList.remove('hidden');
+                messageText.value = '';
+                clearPhotoPreview();
+                clearVideoPreview(); // NEW: очищаем и видео
+                // Подписываемся на обновления сообщений
+                listenForMessages();
+            }
+
+            function clearPhotoPreview() {
+                selectedPhotoDataURL = null;
+                photoInput.value = '';
+                previewContainer.style.display = 'none';
+                imagePreview.src = '#';
+            }
+
+            // NEW: очистка превью видео
+            function clearVideoPreview() {
+                selectedVideoDataURL = null;
+                videoInput.value = '';
+                videoPreviewContainer.style.display = 'none';
+                videoPreview.src = '';
+            }
+
+            // --- Слушаем новые сообщения в реальном времени ---
+            function listenForMessages() {
+                messagesRef.off();
+                messagesRef.limitToLast(200).on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (!data) {
+                        messagesDiv.innerHTML = '';
+                        return;
+                    }
+                    const messagesArray = Object.entries(data).map(([id, msg]) => ({
+                        id,
+                        ...msg
+                    })).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+                    renderMessages(messagesArray);
+                });
+            }
+
+            // --- Отрисовка сообщений ---
+            function renderMessages(messages) {
+                messagesDiv.innerHTML = '';
+                messages.forEach(msg => {
+                    const msgDiv = document.createElement('div');
+                    msgDiv.className = 'message';
+                    if (msg.author === currentUser) {
+                        msgDiv.classList.add('own');
+                    }
+
+                    const header = document.createElement('div');
+                    header.className = 'message-header';
+                    const authorSpan = document.createElement('span');
+                    authorSpan.className = 'message-author';
+                    authorSpan.textContent = msg.author;
+                    const timeSpan = document.createElement('span');
+                    timeSpan.className = 'message-time';
+                    if (msg.timestamp) {
+                        const date = new Date(msg.timestamp);
+                        timeSpan.textContent = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    } else {
+                        timeSpan.textContent = '';
+                    }
+                    header.appendChild(authorSpan);
+                    header.appendChild(timeSpan);
+                    msgDiv.appendChild(header);
+
+                    if (msg.text) {
+                        const textDiv = document.createElement('div');
+                        textDiv.className = 'message-text';
+                        textDiv.textContent = msg.text;
+                        msgDiv.appendChild(textDiv);
+                    }
+
+                    if (msg.photo) {
+                        const img = document.createElement('img');
+                        img.className = 'message-image';
+                        img.src = msg.photo;
+                        img.alt = 'Фото';
+                        img.addEventListener('click', () => window.open(msg.photo));
+                        msgDiv.appendChild(img);
+                    }
+
+                    // NEW: отображение видео
+                    if (msg.video) {
+                        const video = document.createElement('video');
+                        video.className = 'message-video';
+                        video.src = msg.video;
+                        video.controls = true;
+                        video.preload = 'metadata';
+                        video.addEventListener('click', () => window.open(msg.video));
+                        msgDiv.appendChild(video);
+                    }
+
+                    messagesDiv.appendChild(msgDiv);
+                });
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+
+            // --- Отправка сообщения в Firebase ---
+            // NEW: добавлен параметр videoDataURL
+            function sendMessage(text, photoDataURL, videoDataURL) {
+                if (!currentUser) return;
+                if (!text.trim() && !photoDataURL && !videoDataURL) return;
+
+                const newMessage = {
+                    author: currentUser,
+                    text: text.trim() || '',
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                };
+
+                if (photoDataURL) {
+                    newMessage.photo = photoDataURL;
+                }
+                if (videoDataURL) {
+                    newMessage.video = videoDataURL;
+                }
+
+                messagesRef.push(newMessage);
+            }
+
+            // --- Обработка выбора фото ---
+            photoInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) {
+                    clearPhotoPreview();
+                    return;
+                }
+                if (!file.type.startsWith('image/')) {
+                    alert('Пожалуйста, выберите изображение.');
+                    clearPhotoPreview();
+                    return;
+                }
+                // NEW: если было выбрано видео, сбрасываем его
+                if (selectedVideoDataURL) {
+                    clearVideoPreview();
+                }
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    selectedPhotoDataURL = event.target.result;
+                    imagePreview.src = selectedPhotoDataURL;
+                    previewContainer.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            });
+
+            // NEW: обработка выбора видео
+            videoInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) {
+                    clearVideoPreview();
+                    return;
+                }
+                if (!file.type.startsWith('video/')) {
+                    alert('Пожалуйста, выберите видеофайл.');
+                    clearVideoPreview();
+                    return;
+                }
+                // Если было выбрано фото, сбрасываем его
+                if (selectedPhotoDataURL) {
+                    clearPhotoPreview();
+                }
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    selectedVideoDataURL = event.target.result;
+                    videoPreview.src = selectedVideoDataURL;
+                    videoPreviewContainer.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            });
+
+            // --- Отправка по кнопке или Enter ---
+            function handleSend() {
+                const text = messageText.value;
+                // Приоритет: если есть и фото, и видео, отправляем только видео (очистив фото)
+                // но сейчас мы их взаимоисключаем при выборе, поэтому достаточно проверить оба
+                if (!text.trim() && !selectedPhotoDataURL && !selectedVideoDataURL) return;
+                sendMessage(text, selectedPhotoDataURL, selectedVideoDataURL);
+                messageText.value = '';
+                clearPhotoPreview();
+                clearVideoPreview(); // NEW
+            }
+
+            messageText.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                }
+            });
+
+            sendBtn.addEventListener('click', handleSend);
+
+            // --- Вход ---
+            loginBtn.addEventListener('click', function() {
+                const name = loginName.value.trim();
+                const password = loginPassword.value.trim();
+                if (!name) {
+                    loginError.textContent = 'Введите имя';
+                    return;
+                }
+                if (password !== FAMILY_PASSWORD) {
+                    loginError.textContent = 'Неверный пароль';
+                    return;
+                }
+                currentUser = name;
+                localStorage.setItem(USER_KEY, name);
+                showChat();
+                loginError.textContent = '';
+                loginPassword.value = '';
+            });
+
+            // --- Выход ---
+            logoutBtn.addEventListener('click', function() {
+                localStorage.removeItem(USER_KEY);
+                messagesRef.off();
+                showLogin();
+            });
+
+            // Старт
+            checkSession();
+        })();
+    </script>
+</body>
+</html>
